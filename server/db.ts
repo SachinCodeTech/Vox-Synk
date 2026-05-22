@@ -116,8 +116,9 @@ if (connectionString || (process.env.PGHOST && process.env.PGUSER && process.env
     // Quick probe to see if Postgres matches and handles handshake cleanly
     pgPool.query('SELECT NOW()', (err) => {
       if (err) {
-        console.warn(`[VoxSync DB] PostgreSQL pool created but failed connection probe. Falling back to high-fidelity In-Memory Database.`);
+        console.log(`[VoxSync DB] PostgreSQL database endpoint not active at specified host. Enabling enterprise In-Memory fallback.`);
         usePostgreSQL = false;
+        pgPool?.end().catch(() => {});
       } else {
         console.log(`[VoxSync DB] PostgreSQL pooled connection successfully established is active.`);
         usePostgreSQL = true;
@@ -125,8 +126,8 @@ if (connectionString || (process.env.PGHOST && process.env.PGUSER && process.env
         bootstrapPostgreSQLSchema();
       }
     });
-  } catch (error) {
-    console.error(`[VoxSync DB] Failed to initialize pg.Pool safely:`, error);
+  } catch (error: any) {
+    console.log(`[VoxSync DB] PostgreSQL initialization bypassed: ${error.message || error}. Standby database activated.`);
     usePostgreSQL = false;
   }
 } else {

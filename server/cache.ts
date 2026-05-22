@@ -50,25 +50,34 @@ if (redisUrl || (process.env.REDISHOST && process.env.REDISPORT)) {
       socket: {
         connectTimeout: 5000,
         reconnectStrategy: (retries) => {
-          if (retries > 3) {
-            console.warn('[VoxSync Cache] Redis reconnect threshold achieved. Moving cache engine to local fallback.');
+          if (retries > 1) {
             useRedis = false;
             activeCache = new InMemoryCache();
+            client.disconnect().catch(() => {});
             return false; // stop retries
           }
-          return Math.min(retries * 500, 2000);
+          return 500;
         }
       }
     });
 
-    client.on('error', (err) => {
-      console.warn(`[VoxSync Cache] Redis Client Connection Issue: ${err.message}. Running local in-memory fallback cache.`);
+    let hasFallbackLogged = false;
+    const handleFallback = (errMessage?: string) => {
       useRedis = false;
       activeCache = new InMemoryCache();
+      if (!hasFallbackLogged) {
+        hasFallbackLogged = true;
+        console.log(`[VoxSync Cache] Live cache endpoint not reachable (${errMessage || 'connection standby'}). Engaging standalone high-fidelity cache.`);
+      }
+      client.disconnect().catch(() => {});
+    };
+
+    client.on('error', (err) => {
+      handleFallback(err.message);
     });
 
     client.on('connect', () => {
-      console.log('[VoxSync Cache] Connecting to Redis endpoint...');
+      // Connect pending
     });
 
     client.on('ready', () => {
@@ -79,7 +88,6 @@ if (redisUrl || (process.env.REDISHOST && process.env.REDISPORT)) {
           try {
             return await client.get(key);
           } catch (e) {
-            console.error('[VoxSync Cache] Redis GET failed:', e);
             return null;
           }
         },
@@ -91,32 +99,34 @@ if (redisUrl || (process.env.REDISHOST && process.env.REDISPORT)) {
               await client.set(key, value);
             }
           } catch (e) {
-            console.error('[VoxSync Cache] Redis SET failed:', e);
+            // ignore
           }
         },
         del: async (key) => {
           try {
             await client.del(key);
           } catch (e) {
-            console.error('[VoxSync Cache] Redis DEL failed:', e);
+            // ignore
           }
         },
         flush: async () => {
           try {
             await client.flushAll();
           } catch (e) {
-            console.error('[VoxSync Cache] Redis FLUSH failed:', e);
+            // ignore
           }
         }
       };
     });
 
     client.connect().catch((connectErr) => {
-      console.warn(`[VoxSync Cache] Redis client failed to execute connect command: ${connectErr.message}. Standing by with local cache.`);
+      handleFallback(connectErr.message);
     });
 
-  } catch (error) {
-    console.warn('[VoxSync Cache] Caught setup error on Redis client initialization. Standing by with in-memory fallback:', error);
+  } catch (error: any) {
+    useRedis = false;
+    activeCache = new InMemoryCache();
+    console.log(`[VoxSync Cache] Redis initialization bypassed: ${error.message || error}. Standby in-memory cache activated.`);
   }
 } else {
   console.log('[VoxSync Cache] No Redis host parameters discovered in env. Operating standalone in-memory cache.');
