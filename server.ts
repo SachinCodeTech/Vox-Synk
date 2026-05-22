@@ -152,7 +152,7 @@ app.get('/api/health', (req, res) => {
 
   const isDegraded = !dbHealth.usePostgreSQL || !isRedisActive;
 
-  res.json({
+  return res.json({
     status: isDegraded ? 'DEGRADED' : 'ONLINE',
     timestamp: new Date().toISOString(),
     system: {
@@ -198,9 +198,9 @@ app.get('/api/health', (req, res) => {
 app.get('/api/devices', async (req, res) => {
   try {
     const devices = await getDevices();
-    res.json(devices);
+    return res.json(devices);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -245,9 +245,9 @@ app.post('/api/devices', async (req, res) => {
       data: { devices: devicesUpdated, logs: logsUpdated }
     });
 
-    res.status(201).json(newDevice);
+    return res.status(201).json(newDevice);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -295,9 +295,9 @@ app.post('/api/devices/:id/toggle', async (req, res) => {
       }
     });
 
-    res.json({ success: true, status: nextStatus });
+    return res.json({ success: true, status: nextStatus });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -305,9 +305,9 @@ app.post('/api/devices/:id/toggle', async (req, res) => {
 app.get('/api/sync_jobs', async (req, res) => {
   try {
     const jobs = await getSyncJobs();
-    res.json(jobs);
+    return res.json(jobs);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -353,9 +353,9 @@ app.post('/api/sync_jobs', async (req, res) => {
       data: { syncJobs: jobsUpdated, logs: logsUpdated }
     });
 
-    res.status(201).json(newJob);
+    return res.status(201).json(newJob);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -363,9 +363,9 @@ app.post('/api/sync_jobs', async (req, res) => {
 app.get('/api/logs', async (req, res) => {
   try {
     const logs = await getLogs();
-    res.json(logs);
+    return res.json(logs);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -376,7 +376,7 @@ app.get('/api/state', async (req, res) => {
     const syncJobs = await getSyncJobs();
     const logs = await getLogs();
     const alerts = await getAlerts();
-    res.json({
+    return res.json({
       devices,
       syncJobs,
       logs,
@@ -384,7 +384,7 @@ app.get('/api/state', async (req, res) => {
       cacheEngineUsed: cache.isUsingRedis() ? 'Redis' : 'Memory Cache'
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -414,9 +414,9 @@ app.post('/api/alerts/resolve', async (req, res) => {
       data: { alerts: alertsUpdated, logs: logsUpdated }
     });
 
-    res.json({ message: 'Alert resolved successfully.', id });
+    return res.json({ message: 'Alert resolved successfully.', id });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -427,7 +427,7 @@ app.post('/api/simulation/toggle', (req, res) => {
     return res.status(400).json({ error: 'Missing active boolean field.' });
   }
   setSimLoopStatus(active);
-  res.json({ status: 'OK', isSimulating: active });
+  return res.json({ status: 'OK', isSimulating: active });
 });
 
 // API: Update global WAN speed limit setting dynamically
@@ -437,16 +437,16 @@ app.post('/api/settings/wan', (req, res) => {
     return res.status(400).json({ error: 'Missing or invalid bandwidth limit number input.' });
   }
   setWanSpeedLimit(Number(limit));
-  res.json({ status: 'OK', limit: Number(limit) });
+  return res.json({ status: 'OK', limit: Number(limit) });
 });
 
 // API: Fetch currently indexed files from physical sync_dir/
 app.get('/api/index', async (req, res) => {
   try {
     const files = getIndexedFiles();
-    res.json(files);
+    return res.json(files);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -454,9 +454,9 @@ app.get('/api/index', async (req, res) => {
 app.post('/api/index/sweep', async (req, res) => {
   try {
     const files = await runFilesystemIndexSweep();
-    res.json({ status: 'SWEPT', fileCount: files.length, files });
+    return res.json({ status: 'SWEPT', fileCount: files.length, files });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -467,7 +467,7 @@ app.post('/api/sync_jobs/cancel', (req, res) => {
     return res.status(400).json({ error: 'Missing sync task ID.' });
   }
   const cancelled = cancelSyncTask(id);
-  res.json({ status: cancelled ? 'CANCEL_REQUESTED' : 'NOT_FOUND', id });
+  return res.json({ status: cancelled ? 'CANCEL_REQUESTED' : 'NOT_FOUND', id });
 });
 
 // API: Inject write concurrency conflict simulation
@@ -498,9 +498,9 @@ app.post('/api/simulation/conflict', async (req, res) => {
       }
     });
 
-    res.json({ status: 'CONFLICT_INJECTED' });
+    return res.json({ status: 'CONFLICT_INJECTED' });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -556,9 +556,9 @@ app.post('/api/simulation/resolve-conflict', async (req, res) => {
       data: { syncJobs: jobsUpdated, logs: logsUpdated }
     });
 
-    res.json({ status: 'RESOLVED', strategy });
+    return res.json({ status: 'RESOLVED', strategy });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -587,12 +587,12 @@ if (!isProd) {
     app.use(express.static(clientDistPath));
     
     app.get('/:path*', (req, res) => {
-      res.sendFile(path.join(clientDistPath, 'index.html'));
+      return res.sendFile(path.join(clientDistPath, 'index.html'));
     });
   } else {
     console.warn(`[VoxSync Server] Client directory dist/ not established. Run static build command first to bind UI.`);
     app.get('/', (req, res) => {
-      res.send('<h1>VoxSync Control Node APIs Operational</h1><p>Static React dashboard has not compiled yet. Complete compilation to see full interactive admin tools.</p>');
+      return res.send('<h1>VoxSync Control Node APIs Operational</h1><p>Static React dashboard has not compiled yet. Complete compilation to see full interactive admin tools.</p>');
     });
   }
 }
