@@ -72,7 +72,7 @@ interface SyncJob {
   progress: number; // 0 to 100
   speed: string; // e.g. "142.5 MB/s"
   type: 'UPLOAD' | 'DOWNLOAD' | 'REPLICATION';
-  status: 'QUEUED' | 'SYNCING' | 'COMPLETED' | 'FAILED';
+  status: 'QUEUED' | 'SYNCING' | 'COMPLETED' | 'FAILED' | 'VERIFYING' | 'TRANSFERRING' | 'VALIDATING';
   department: string;
   eta: string;
 }

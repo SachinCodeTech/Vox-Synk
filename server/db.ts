@@ -33,7 +33,7 @@ export interface SyncJobRecord {
   progress: number;
   speed: string;
   type: 'UPLOAD' | 'DOWNLOAD' | 'REPLICATION';
-  status: 'QUEUED' | 'SYNCING' | 'COMPLETED' | 'FAILED';
+  status: 'QUEUED' | 'SYNCING' | 'COMPLETED' | 'FAILED' | 'VERIFYING' | 'TRANSFERRING' | 'VALIDATING';
   department: string;
   eta: string;
   created_at: Date;
@@ -498,7 +498,7 @@ export async function insertSyncJob(job: SyncJobRecord): Promise<void> {
   inMemoryDb.syncJobs.unshift(job);
 }
 
-export async function updateSyncJobProgress(id: string, progress: number, speed: string, status: 'QUEUED' | 'SYNCING' | 'COMPLETED' | 'FAILED', eta: string): Promise<void> {
+export async function updateSyncJobProgress(id: string, progress: number, speed: string, status: 'QUEUED' | 'SYNCING' | 'COMPLETED' | 'FAILED' | 'VERIFYING' | 'TRANSFERRING' | 'VALIDATING', eta: string): Promise<void> {
   if (usePostgreSQL && pgPool) {
     try {
       await pgPool.query(
