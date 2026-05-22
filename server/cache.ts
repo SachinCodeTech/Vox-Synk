@@ -48,7 +48,7 @@ if (redisUrl || (process.env.REDISHOST && process.env.REDISPORT)) {
     const client = createClient({
       url: redisUrl || `redis://${process.env.REDISHOST || 'localhost'}:${process.env.REDISPORT || 6379}`,
       socket: {
-        connectTimeoutMs: 5000,
+        connectTimeout: 5000,
         reconnectStrategy: (retries) => {
           if (retries > 3) {
             console.warn('[VoxSync Cache] Redis reconnect threshold achieved. Moving cache engine to local fallback.');
