@@ -57,6 +57,10 @@ interface Device {
   storageTotal: number; // in GB
   latency: number; // in ms
   lastSeen: string;
+  activeTransfers?: number;
+  lastHeartbeat?: number;
+  healthScore?: number;
+  uptimeSeconds?: number;
 }
 
 interface SyncJob {
@@ -111,6 +115,235 @@ function generateUniqueId(prefix: string): string {
 }
 
 // ==========================================
+// UPTIME FORMATTER UTILITY
+// ==========================================
+function formatUptimeDuration(seconds?: number): string {
+  if (!seconds || seconds === 0) return 'Just started';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${h}h ${m}m`;
+  } else if (m > 0) {
+    return `${m}m ${s}s`;
+  } else {
+    return `${s}s`;
+  }
+}
+
+// ==========================================
+// CLUSTER TOPOLOGY MAP COMPONENT (STAGE 3D)
+// ==========================================
+function ClusterTopologyMap({ devices, syncJobs }: { devices: Device[]; syncJobs: SyncJob[] }) {
+  const width = 600;
+  const height = 180;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = 220; // horizontal radius
+  const vRadius = 60;  // vertical radius for beautiful clean oval layout
+
+  const baseNodes = devices.map((dev, i) => {
+    const angle = (2 * Math.PI * i) / Math.max(1, devices.length) - Math.PI / 2;
+    const x = centerX + radius * Math.cos(angle);
+    const y = centerY + vRadius * Math.sin(angle);
+    return {
+      ...dev,
+      x,
+      y
+    };
+  });
+
+  const activeLinks = syncJobs
+    .filter(j => j.status === 'SYNCING')
+    .map(job => {
+      const srcNode = baseNodes.find(n => n.hostname === job.sourceDevice);
+      const destNode = baseNodes.find(n => n.hostname === job.destDevice);
+      if (srcNode && destNode) {
+        return {
+          id: job.id,
+          fileName: job.fileName,
+          srcX: srcNode.x,
+          srcY: srcNode.y,
+          destX: destNode.x,
+          destY: destNode.y,
+          speed: job.speed
+        };
+      }
+      return null;
+    })
+    .filter(Boolean) as Array<{ id: string; fileName: string; srcX: number; srcY: number; destX: number; destY: number; speed: string }>;
+
+  return (
+    <div className="bg-[#121824]/50 border border-[#1f2937] rounded-2xl p-5 space-y-4 shadow-lg relative overflow-hidden">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2.5">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          <h2 className="text-sm font-semibold text-white tracking-tight">Virtual Cluster Mesh Topology & Direct-WAN Traces</h2>
+        </div>
+        <div className="text-[10px] font-mono text-slate-400 font-bold bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-lg">
+          {activeLinks.length} Active Replication Links
+        </div>
+      </div>
+
+      <div className="relative w-full bg-slate-950 p-3 border border-slate-850 rounded-xl overflow-x-auto select-none scrollbar-thin scrollbar-thumb-slate-800">
+        <svg 
+          viewBox={`0 0 ${width} ${height}`} 
+          className="w-full h-auto min-w-[550px] max-h-[180px] block"
+        >
+          {/* Defs for gradients / glowing filters */}
+          <defs>
+            <radialGradient id="meshGradient" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#1e1b4b" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#020617" stopOpacity="0.1" />
+            </radialGradient>
+            <linearGradient id="linkActiveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="50%" stopColor="#06b6d4" />
+              <stop offset="100%" stopColor="#10b981" />
+            </linearGradient>
+          </defs>
+
+          {/* Central coordination area background shading */}
+          <ellipse cx={centerX} cy={centerY} rx={radius} ry={vRadius} fill="url(#meshGradient)" stroke="#1e293b" strokeWidth="1" strokeDasharray="3 4" />
+
+          {/* Draw Mesh Connection Lines (passive structural backplane) */}
+          {baseNodes.map((n1, i) => 
+            baseNodes.slice(i + 1).map((n2, j) => {
+              const isDirectActive = activeLinks.some(l => 
+                (l.srcX === n1.x && l.srcY === n1.y && l.destX === n2.x && l.destY === n2.y) ||
+                (l.srcX === n2.x && l.srcY === n2.y && l.destX === n1.x && l.destY === n1.y)
+              );
+              if (isDirectActive) return null; // Drawn separately in higher contrast!
+              return (
+                <line
+                  key={`mesh-link-${i}-${j}`}
+                  x1={n1.x}
+                  y1={n1.y}
+                  x2={n2.x}
+                  y2={n2.y}
+                  stroke="#1e293b"
+                  strokeWidth="1.2"
+                  strokeOpacity="0.55"
+                />
+              );
+            })
+          )}
+
+          {/* Draw Active Sync Links with Sliding Pulse Indicator */}
+          {activeLinks.map((link) => (
+            <g key={`active-${link.id}`}>
+              {/* Core active thread */}
+              <line
+                x1={link.srcX}
+                y1={link.srcY}
+                x2={link.destX}
+                y2={link.destY}
+                stroke="url(#linkActiveGrad)"
+                strokeWidth="2"
+                className="animate-pulse"
+              />
+              {/* Flowing data particle */}
+              <circle r="4.5" fill="#22d3ee">
+                <animateMotion
+                  dur="4s"
+                  repeatCount="indefinite"
+                  path={`M ${link.srcX} ${link.srcY} L ${link.destX} ${link.destY}`}
+                />
+              </circle>
+              {/* Dynamic text floating */}
+              <text
+                x={(link.srcX + link.destX) / 2}
+                y={(link.srcY + link.destY) / 2 - 6}
+                fill="#22d3ee"
+                fontSize="7.5"
+                fontFamily="monospace"
+                fontWeight="bold"
+                textAnchor="middle"
+                className="bg-slate-950 px-1 rounded"
+              >
+                {link.fileName.length > 20 ? link.fileName.slice(0, 17) + '...' : link.fileName}
+              </text>
+            </g>
+          ))}
+
+          {/* Render Cluster Nodes */}
+          {baseNodes.map((node) => {
+            const isOnline = node.status !== 'OFFLINE';
+            const isSyncing = node.status === 'SYNCING';
+            const nodeColor = isSyncing ? '#22d3ee' : isOnline ? '#10b981' : '#475569';
+            const outlineColor = isSyncing ? '#06b6d4' : isOnline ? '#059669' : '#334155';
+
+            return (
+              <g key={`node-${node.id}`} className="group">
+                {/* Node hover glow disk */}
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r="16"
+                  fill={nodeColor}
+                  fillOpacity="0.04"
+                  stroke={outlineColor}
+                  strokeWidth="1"
+                  strokeOpacity="0.15"
+                  className="transition duration-300 group-hover:scale-125"
+                />
+                
+                {/* Visual pulse for syncing hosts */}
+                {isSyncing && (
+                  <circle
+                    cx={node.x}
+                    cy={node.y}
+                    r="12"
+                    fill="none"
+                    stroke="#22d3ee"
+                    strokeWidth="1.5"
+                    className="animate-ping"
+                    opacity="0.3"
+                  />
+                )}
+
+                {/* Node center point */}
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r="6.5"
+                  fill="#030712"
+                  stroke={nodeColor}
+                  strokeWidth="2.5"
+                />
+
+                {/* Text Labels */}
+                <text
+                  x={node.x}
+                  y={node.y - 12}
+                  fill="#f1f5f9"
+                  fontSize="7.5"
+                  fontWeight="bold"
+                  fontFamily="monospace"
+                  textAnchor="middle"
+                >
+                  {node.hostname}
+                </text>
+                <text
+                  x={node.x}
+                  y={node.y + 16}
+                  fill={isOnline ? "#94a3b8" : "#64748b"}
+                  fontSize="6.5"
+                  fontFamily="monospace"
+                  textAnchor="middle"
+                >
+                  {isOnline ? `${node.latency}ms / ${node.healthScore || 100} HS` : 'OFFLINE'}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // MAIN APP COMPONENT
 // ==========================================
 
@@ -144,17 +377,60 @@ export default function App() {
   const [isAuditScanning, setIsAuditScanning] = useState(false);
   const [auditComplete, setAuditComplete] = useState(false);
 
+  // Full-Stack backend sync indicators
+  const [activeBackendActive, setActiveBackendActive] = useState(false);
+  const [activeCacheEngine, setActiveCacheEngine] = useState('Memory Cache');
+
+  // PWA Support state
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    
+    // Check if app is launched in standalone display mode
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+      setIsInstalled(true);
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+      console.log('[VoxSync Core] Progressive app installed successfully.');
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
+  }, []);
+
+  const handlePwaInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    }
+  };
+
+
   // ==========================================
   // INITIALIZERS FOR SEED DATA
   // ==========================================
 
   // Devices Seed State
   const [devices, setDevices] = useState<Device[]>([
-    { id: 'dev-1', hostname: 'NYC-ARCH-DESK-01', ip: '10.240.10.31', location: 'New York (LAN)', role: 'Lead Architect Workstation', status: 'SYNCING', storageUsed: 384, storageTotal: 1000, latency: 4, lastSeen: 'Just now' },
-    { id: 'dev-2', hostname: 'LDN-MEPF-SRV-02', ip: '10.240.20.12', location: 'London WAN', role: 'Central MEP Engineering Vault', status: 'SYNCING', storageUsed: 2240, storageTotal: 8000, latency: 14, lastSeen: 'Just now' },
-    { id: 'dev-3', hostname: 'SGP-BOQ-STUDIO-05', ip: '10.245.40.8', location: 'Singapore WAN', role: 'BOQ Estimations Server', status: 'ONLINE', storageUsed: 120, storageTotal: 500, latency: 38, lastSeen: '2m ago' },
-    { id: 'dev-4', hostname: 'PAR-STR-DESK-11', ip: '10.240.30.45', location: 'Paris LAN', role: 'Structural Modeling Node', status: 'ONLINE', storageUsed: 412, storageTotal: 1000, latency: 8, lastSeen: '1m ago' },
-    { id: 'dev-5', hostname: 'TYO-VRT-RENDER-03', ip: '10.198.80.99', location: 'Tokyo WAN', role: 'GPU Render Farm Coordinator', status: 'OFFLINE', storageUsed: 6200, storageTotal: 12000, latency: 154, lastSeen: '3h ago' }
+    { id: 'dev-1', hostname: 'NYC-ARCH-DESK-01', ip: '10.240.10.31', location: 'New York (LAN)', role: 'Lead Architect Workstation', status: 'SYNCING', storageUsed: 384, storageTotal: 1000, latency: 4, lastSeen: 'Just now', activeTransfers: 1, lastHeartbeat: Date.now(), healthScore: 98, uptimeSeconds: 32050 },
+    { id: 'dev-2', hostname: 'LDN-MEPF-SRV-02', ip: '10.240.20.12', location: 'London WAN', role: 'Central MEP Engineering Vault', status: 'SYNCING', storageUsed: 2240, storageTotal: 8000, latency: 14, lastSeen: 'Just now', activeTransfers: 2, lastHeartbeat: Date.now(), healthScore: 95, uptimeSeconds: 154200 },
+    { id: 'dev-3', hostname: 'SGP-BOQ-STUDIO-05', ip: '10.245.40.8', location: 'Singapore WAN', role: 'BOQ Estimations Server', status: 'ONLINE', storageUsed: 120, storageTotal: 500, latency: 38, lastSeen: '2m ago', activeTransfers: 1, lastHeartbeat: Date.now() - 4000, healthScore: 91, uptimeSeconds: 8400 },
+    { id: 'dev-4', hostname: 'PAR-STR-DESK-11', ip: '10.240.30.45', location: 'Paris LAN', role: 'Structural Modeling Node', status: 'ONLINE', storageUsed: 412, storageTotal: 1000, latency: 8, lastSeen: '1m ago', activeTransfers: 0, lastHeartbeat: Date.now() - 2000, healthScore: 99, uptimeSeconds: 41200 },
+    { id: 'dev-5', hostname: 'TYO-VRT-RENDER-03', ip: '10.198.80.99', location: 'Tokyo WAN', role: 'GPU Render Farm Coordinator', status: 'OFFLINE', storageUsed: 6200, storageTotal: 12000, latency: 154, lastSeen: '3h ago', activeTransfers: 0, lastHeartbeat: Date.now() - 3600000, healthScore: 0, uptimeSeconds: 0 }
   ]);
 
   // Projects Seed State
@@ -240,10 +516,142 @@ export default function App() {
   }, [devices]);
 
   // ==========================================
-  // REAL-TIME SIMULATOR LOOP
+  // FULL-STACK BACKED/API SOCKET BINDER (REALTIME EFFECT)
   // ==========================================
   useEffect(() => {
-    if (!isSimulating) return;
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: any = null;
+    let reconnectAttempts = 0;
+    const maxReconnectDelay = 10000;
+
+    function connectWS() {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+
+      // Clean up previous socket cleanly if exists
+      if (ws) {
+        try {
+          ws.onopen = null;
+          ws.onclose = null;
+          ws.onerror = null;
+          ws.onmessage = null;
+          ws.close();
+        } catch (e) {}
+      }
+
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws-sync`;
+      console.log(`[VoxSync Admin] Connecting Socket to host: ${wsUrl} (Attempt: ${reconnectAttempts + 1})`);
+      
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log('[VoxSync Admin] WebSockets socket connected!');
+        setActiveBackendActive(true);
+        reconnectAttempts = 0; // reset attempts
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          
+          if (payload.type === 'INITIAL_STATE' || payload.type === 'STATE_UPDATE') {
+            const { devices: rxDevs, syncJobs: rxJobs, logs: rxLogs, alerts: rxAlerts, isSimulating: rxSim, cacheEngineUsed } = payload.data;
+            if (rxDevs) setDevices(rxDevs);
+            if (rxJobs) setSyncJobs(rxJobs);
+            if (rxLogs) setLogs(rxLogs);
+            if (rxAlerts) setAiAlerts(rxAlerts);
+            if (rxSim !== undefined) setIsSimulating(rxSim);
+            if (cacheEngineUsed) setActiveCacheEngine(cacheEngineUsed);
+          } else if (payload.type === 'CONFLICT_TRIGGERED') {
+            setShowConflictModal(true);
+          } else if (payload.type === 'FS_CHANGE') {
+            const { event: fsEvent, filename } = payload.data;
+            console.log(`[VoxSync Watcher Notification] chokidar trigger: ${fsEvent} on file: ${filename}`);
+          }
+        } catch (e) {
+          console.error('[VoxSync WS Exception]', e);
+        }
+      };
+
+      ws.onclose = () => {
+        setActiveBackendActive(false);
+        const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), maxReconnectDelay) + Math.random() * 500;
+        reconnectAttempts++;
+        console.warn(`[VoxSync Admin] Sockets disconnected. Attempting reconnect #${reconnectAttempts} in ${Math.round(delay)}ms...`);
+        reconnectTimeout = setTimeout(connectWS, delay);
+      };
+
+      ws.onerror = (err) => {
+        console.error('[VoxSync Admin] WebSocket encountered trace error. Recycled closed handles.', err);
+        try {
+          ws?.close();
+        } catch (e) {}
+      };
+    }
+
+    connectWS();
+
+    // Resilient state polling fallback to keep UI fully in sync with real server if WebSockets fail/upgrade blocked
+    let pollInterval: any = null;
+    
+    function startPollingFallback() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(() => {
+        // Query real server DB state
+        fetch('/api/state')
+          .then(res => {
+            if (!res.ok) throw new Error('API down');
+            return res.json();
+          })
+          .then(payload => {
+            // Once polling succeeds, we know the backend is active and responding
+            setActiveBackendActive(true);
+            
+            const { devices: rxDevs, syncJobs: rxJobs, logs: rxLogs, alerts: rxAlerts, isSimulating: rxSim, cacheEngineUsed } = payload;
+            if (rxDevs) setDevices(rxDevs);
+            if (rxJobs) setSyncJobs(rxJobs);
+            if (rxLogs) setLogs(rxLogs);
+            if (rxAlerts) setAiAlerts(rxAlerts);
+            if (rxSim !== undefined) setIsSimulating(rxSim);
+            if (cacheEngineUsed) setActiveCacheEngine(cacheEngineUsed);
+          })
+          .catch((e) => {
+            console.debug('[VoxSync Polling] API unreachable, relying on local simulations', e);
+          });
+      }, 3000);
+    }
+    
+    startPollingFallback();
+
+    // Query server configuration for caching parameters
+    fetch('/api/health')
+      .then(res => res.json())
+      .then(d => {
+        setActiveBackendActive(true);
+        if (d.services?.cache) {
+          const cacheVal = d.services.cache;
+          setActiveCacheEngine(typeof cacheVal === 'object' ? cacheVal.type : cacheVal);
+        }
+      })
+      .catch(() => {
+        console.log('[VoxSync Admin] Control Node is not listening. Engaging isolated local state UI dashboard.');
+      });
+
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, []);
+
+  // ==========================================
+  // REAL-TIME LOCAL SIMULATOR LOOP (STANDALONE FALLBACK MODE)
+  // ==========================================
+  useEffect(() => {
+    // If backend socket communication is online, fully defer to centralized server loops!
+    if (!isSimulating || activeBackendActive) return;
 
     const interval = setInterval(() => {
       // 1. Progress active sync jobs
@@ -369,10 +777,10 @@ export default function App() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isSimulating]);
+  }, [isSimulating, activeBackendActive]);
 
   // ==========================================
-  // CLICK HANDLERS & INJECTORS
+  // CLICK HANDLERS & INJECTORS (DYNAMIC REST APIs)
   // ==========================================
 
   // Toggle Project Department syncing activity rules
@@ -407,7 +815,7 @@ export default function App() {
   };
 
   // Inject a simulated client file change manually
-  const injectLocalFileChange = (dept: string, specFile?: string) => {
+  const injectLocalFileChange = async (dept: string, specFile?: string) => {
     const defaultFiles: Record<string, string[]> = {
       'Architecture': ['concept_atrium_plan_v2.dwg', 'elevations_scheme_west.dwg', 'facade_glass_system.rvt'],
       'Structural': ['load_bearings_bento.rvt', 'column_schedule_tower.dwg', 'structural_anchors.rvt'],
@@ -420,6 +828,23 @@ export default function App() {
     const chosenFile = specFile || files[Math.floor(Math.random() * files.length)];
     const sizeStr = `${(Math.random() * 45 + 5).toFixed(1)} MB`;
 
+    if (activeBackendActive) {
+      try {
+        const response = await fetch('/api/sync_jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: chosenFile, department: dept, size: sizeStr })
+        });
+        if (response.ok) {
+          setActiveTab('queue');
+          return;
+        }
+      } catch (e) {
+        console.warn('[VoxSync API Fallback] /api/sync_jobs is unreachable. Running local simulation inject.', e);
+      }
+    }
+
+    // Local execution fallback
     const newJob: SyncJob = {
       id: generateUniqueId('job-inject'),
       fileName: chosenFile,
@@ -434,10 +859,8 @@ export default function App() {
       eta: '4s'
     };
 
-    // Add to active sync queue
     setSyncJobs(prev => [newJob, ...prev]);
 
-    // Push entry to logs
     const now = new Date().toLocaleTimeString().split(' ')[0];
     setLogs(prev => [
       {
@@ -450,12 +873,20 @@ export default function App() {
       ...prev
     ]);
 
-    // Go to queue tab
     setActiveTab('queue');
   };
 
   // Trigger Conflict Simulation
-  const triggerSyncConflict = () => {
+  const triggerSyncConflict = async () => {
+    if (activeBackendActive) {
+      try {
+        const response = await fetch('/api/simulation/conflict', { method: 'POST' });
+        if (response.ok) return;
+      } catch (e) {
+        console.warn('[VoxSync API Fallback] Failed to push conflict update. Deploying UI triggers manually.', e);
+      }
+    }
+
     setShowConflictModal(true);
     const now = new Date().toLocaleTimeString().split(' ')[0];
     setLogs(prev => [
@@ -471,11 +902,24 @@ export default function App() {
   };
 
   // Resolve Conflict action
-  const resolveConflict = (strategy: 'server' | 'client' | 'both') => {
+  const resolveConflict = async (strategy: 'server' | 'client' | 'both') => {
     setSelectedConflictRes(strategy);
     setShowConflictModal(false);
     
-    // Inject solution into log
+    if (activeBackendActive) {
+      try {
+        const response = await fetch('/api/simulation/resolve-conflict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ strategy })
+        });
+        if (response.ok) return;
+      } catch (e) {
+        console.warn('[VoxSync API Fallback] Failed to notify backend of strategy resolution:', e);
+      }
+    }
+
+    // Inject solution into log (standalone)
     const now = new Date().toLocaleTimeString().split(' ')[0];
     let resolutionMessage = '';
     if (strategy === 'server') {
@@ -484,7 +928,6 @@ export default function App() {
       resolutionMessage = 'Forced client workstation version (NYC-ARCH-DESK-01). Overwrote central cloud node with rollback snapshot created.';
     } else {
       resolutionMessage = 'Maintained dual-node branches: Renamed NYC workstation version to "load_bearings_bento_NYC-CONFLICT_REV.rvt". Both synced.';
-      // Create new job representing renamed resolution sync
       injectLocalFileChange('Structural', 'load_bearings_bento_NYC-CONFLICT_REV.rvt');
     }
 
@@ -501,9 +944,32 @@ export default function App() {
   };
 
   // Register device action
-  const handleAddDevice = (e: React.FormEvent) => {
+  const handleAddDevice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDeviceHost || !newDeviceIP) return;
+
+    if (activeBackendActive) {
+      try {
+        const response = await fetch('/api/devices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hostname: newDeviceHost,
+            ip: newDeviceIP,
+            location: newDeviceLoc,
+            role: newDeviceRole
+          })
+        });
+        if (response.ok) {
+          setNewDeviceHost('');
+          setNewDeviceIP('');
+          setShowAddDevice(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('[VoxSync API Fallback] Core register offline. Standard offline enrollment mapping active.', e);
+      }
+    }
 
     const newDev: Device = {
       id: generateUniqueId('dev'),
@@ -564,7 +1030,20 @@ export default function App() {
     }, 2500);
   };
 
-  const resolveAlertSim = (id: string) => {
+  const resolveAlertSim = async (id: string) => {
+    if (activeBackendActive) {
+      try {
+        const response = await fetch('/api/alerts/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        if (response.ok) return;
+      } catch (e) {
+        console.warn('[VoxSync API Fallback] Failed resolving alert on backend. Splicing offline backup mutation.', e);
+      }
+    }
+
     setAiAlerts(prev => prev.map(al => {
       if (al.id === id) {
         return { ...al, resolved: true };
@@ -738,14 +1217,14 @@ export default function App() {
         <div className="p-4 mx-4 mb-6 bg-slate-900/60 border border-slate-800 rounded-xl">
           <div className="flex items-center space-x-2.5 mb-1.5">
             <Database className="w-4.5 h-4.5 text-blue-400" />
-            <span className="text-xs font-semibold text-slate-200">Local Cache Pool</span>
+            <span className="text-xs font-semibold text-slate-200">Cache Pool: <span className="text-indigo-400 font-mono">{activeCacheEngine}</span></span>
           </div>
           <div className="w-full bg-slate-800 rounded-full h-1.5 mb-1.5 overflow-hidden">
             <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full" style={{ width: '64%' }}></div>
           </div>
           <div className="flex justify-between text-[10px] font-mono text-slate-400">
             <span>6.4 TB Used</span>
-            <span>12.5 TB Pool</span>
+            <span>{activeBackendActive ? 'Postgres Active' : 'Offline Pool'}</span>
           </div>
         </div>
       </aside>
@@ -759,8 +1238,10 @@ export default function App() {
         <header id="voxsync-header-controls" className="h-16 border-b border-[#1f2937] px-6 bg-[#0c1017] flex items-center justify-between shrink-0 select-none">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-xs bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="font-mono text-emerald-400 font-semibold tracking-wider">SECURE SHAPE-STABLE HANDSHAKE</span>
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${activeBackendActive ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+              <span className={`font-mono font-semibold tracking-wider ${activeBackendActive ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {activeBackendActive ? 'SECURE CONSOLE SYSTEM LIVE' : 'STANDBY OFFLINE EMBEDDED'}
+              </span>
             </div>
             <div className="hidden md:flex items-center space-x-1.5 text-xs text-slate-400 font-mono">
               <Clock className="w-3.5 h-3.5 text-slate-500" />
@@ -800,6 +1281,27 @@ export default function App() {
 
             {/* Test action triggers */}
             <div className="flex items-center space-x-2">
+              {/* PWA Install Action Prompt */}
+              {deferredPrompt && (
+                <button
+                  onClick={handlePwaInstall}
+                  className="text-xs font-semibold text-cyan-400 bg-cyan-950/40 border border-cyan-800/80 hover:bg-cyan-900/40 px-3 py-1.5 rounded-lg transition-all animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.15)] flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span>Install App</span>
+                </button>
+              )}
+              {isInstalled && (
+                <div className="hidden sm:flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-[10px] text-emerald-400 font-mono tracking-wider">
+                  <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span>DESKTOP APP ACTIVE</span>
+                </div>
+              )}
+
               <button 
                 onClick={triggerSyncConflict}
                 className="text-xs font-medium text-amber-400 bg-amber-950/30 border border-amber-900/60 hover:bg-amber-900/40 px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1"
@@ -1205,6 +1707,8 @@ export default function App() {
                 </form>
               )}
 
+              <ClusterTopologyMap devices={devices} syncJobs={syncJobs} />
+
               {/* Devices Grid Area */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {devices.map((dev) => (
@@ -1247,6 +1751,30 @@ export default function App() {
                         <div>
                           <span className="text-slate-500 block uppercase font-mono text-[9px] font-bold">WAN NODE POSITION</span>
                           <span className="text-slate-350 text-xs font-semibold">{dev.location}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 text-[11px] pt-1">
+                        <div>
+                          <span className="text-slate-500 block uppercase font-mono text-[9px] font-bold">HEALTH MONITOR</span>
+                          <span className={`inline-flex items-center space-x-1 px-2 py-0.5 mt-0.5 rounded text-[10px] font-mono font-bold border ${
+                            dev.status === 'OFFLINE'
+                              ? 'text-slate-500 bg-slate-950/40 border-slate-900/60'
+                              : (dev.healthScore || 100) >= 90
+                              ? 'text-emerald-400 bg-emerald-950/20 border-emerald-900/40'
+                              : (dev.healthScore || 100) >= 70
+                              ? 'text-amber-400 bg-amber-950/20 border-amber-900/40'
+                              : 'text-rose-400 bg-rose-950/20 border-rose-900/40'
+                          }`}>
+                            <span>{(dev.status === 'OFFLINE' ? 0 : (dev.healthScore || 100))}% HSE</span>
+                            <span className="text-slate-500 font-normal">({dev.activeTransfers || 0} active)</span>
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block uppercase font-mono text-[9px] font-bold">OPERATING UPTIME</span>
+                          <span className="text-slate-350 text-xs font-mono font-semibold block mt-0.5">
+                            {formatUptimeDuration(dev.status === 'OFFLINE' ? 0 : dev.uptimeSeconds)}
+                          </span>
                         </div>
                       </div>
 
@@ -1305,7 +1833,15 @@ export default function App() {
                         </button>
 
                         <button 
-                          onClick={() => {
+                          onClick={async () => {
+                            if (activeBackendActive) {
+                              try {
+                                await fetch(`/api/devices/${dev.id}/toggle`, { method: 'POST' });
+                                return;
+                              } catch (e) {
+                                console.warn('[VoxSync API Fallback] Failed to toggle node state on live server, executing local state toggle.', e);
+                              }
+                            }
                             setDevices(prev => prev.map(d => {
                               if (d.id === dev.id) {
                                 const nextStatus = d.status === 'OFFLINE' ? 'ONLINE' : 'OFFLINE';
@@ -1825,7 +2361,15 @@ export default function App() {
                     max="1000" 
                     step="50"
                     value={wanBpsLimit}
-                    onChange={(e) => setWanBpsLimit(Number(e.target.value))}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setWanBpsLimit(val);
+                      fetch('/api/settings/wan', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ limit: val })
+                      }).catch((err) => console.debug('[Settings Sync Error]', err));
+                    }}
                     className="w-full bg-slate-950 rounded-lg cursor-pointer accent-[#3b82f6] h-1.5"
                   />
                   <div className="flex justify-between text-[10px] text-slate-500 font-mono">

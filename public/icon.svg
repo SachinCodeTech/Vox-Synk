@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Deep carbon enterprise background -->
+  <rect width="512" height="512" rx="112" fill="#0a0c10"/>
+  
+  <!-- Outer technological glowing rings -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#1e293b" stroke-width="12" stroke-dasharray="16 32" />
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#0e7490" stroke-width="6" stroke-opacity="0.4" />
+  
+  <!-- Orbiting WAN Node Connections -->
+  <g transform="translate(256, 256)">
+    <!-- Node A (Lead Desk) -->
+    <circle cx="0" cy="-140" r="16" fill="#22d3ee" filter="drop-shadow(0 0 8px #22d3ee)" />
+    <!-- Node B (London Server) -->
+    <circle cx="121" cy="70" r="16" fill="#10b981" filter="drop-shadow(0 0 8px #10b981)" />
+    <!-- Node C (Singapore WAN) -->
+    <circle cx="-121" cy="70" r="16" fill="#3b82f6" filter="drop-shadow(0 0 8px #3b82f6)" />
+    
+    <!-- Connector Arrows or Lines -->
+    <path d="M 0 -115 L 100 55" fill="none" stroke="#334155" stroke-width="4" stroke-dasharray="4 6" />
+    <path d="M 100 55 L -100 55" fill="none" stroke="#334155" stroke-width="4" stroke-dasharray="4 6" />
+    <path d="M -100 55 L 0 -115" fill="none" stroke="#334155" stroke-width="4" stroke-dasharray="4 6" />
+  </g>
+
+  <!-- Central Consolidated Core -->
+  <circle cx="256" cy="256" r="55" fill="#111827" stroke="#22d3ee" stroke-width="8" filter="drop-shadow(0 0 16px #06b6d4)" />
+  
+  <!-- Dynamic Synchronizer Arrows in Core -->
+  <path d="M 230 256 A 26 26 0 0 1 270 230 L 270 218 L 290 238 L 270 258 L 270 246 A 14 14 0 0 0 244 256 Z" fill="#22d3ee" />
+  <path d="M 282 256 A 26 26 0 0 1 242 282 L 242 294 L 222 274 L 242 254 L 242 266 A 14 14 0 0 0 268 256 Z" fill="#10b981" />
+</svg>
