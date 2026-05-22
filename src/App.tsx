@@ -1217,7 +1217,7 @@ export default function App() {
         <div className="p-4 mx-4 mb-6 bg-slate-900/60 border border-slate-800 rounded-xl">
           <div className="flex items-center space-x-2.5 mb-1.5">
             <Database className="w-4.5 h-4.5 text-blue-400" />
-            <span className="text-xs font-semibold text-slate-200">Cache Pool: <span className="text-indigo-400 font-mono">{activeCacheEngine}</span></span>
+            <span className="text-xs font-semibold text-slate-200">Cache Pool: <span className="text-indigo-400 font-mono">{typeof activeCacheEngine === 'object' && activeCacheEngine !== null ? (activeCacheEngine as any).type || JSON.stringify(activeCacheEngine) : activeCacheEngine}</span></span>
           </div>
           <div className="w-full bg-slate-800 rounded-full h-1.5 mb-1.5 overflow-hidden">
             <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full" style={{ width: '64%' }}></div>
