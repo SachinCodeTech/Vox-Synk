@@ -61,26 +61,34 @@ export function initFilesystemWatcher(callback: (event: string, filePath: string
 
   console.log(`[VoxSync Watcher] Engaging Chokidar active watcher pipeline on directory: ${syncDir}`);
 
-  watcher = watch(syncDir, {
-    ignored: /(^|[\/\\])\../, // ignore dotfiles
-    persistent: true,
-    ignoreInitial: true, // skip existing files on boot to prevent spam
-    awaitWriteFinish: {
-      stabilityThreshold: 1000,
-      pollInterval: 100
-    }
-  });
-
-  watcher
-    .on('add', async (filePath: string) => {
-      await handleFileEvent('ADD', filePath);
-    })
-    .on('change', async (filePath: string) => {
-      await handleFileEvent('MODIFY', filePath);
-    })
-    .on('unlink', async (filePath: string) => {
-      await handleFileEvent('DELETE', filePath);
+  try {
+    watcher = watch(syncDir, {
+      ignored: /(^|[\/\\])\../, // ignore dotfiles
+      persistent: true,
+      ignoreInitial: true, // skip existing files on boot to prevent spam
+      awaitWriteFinish: {
+        stabilityThreshold: 1000,
+        pollInterval: 100
+      }
     });
+
+    watcher
+      .on('add', async (filePath: string) => {
+        await handleFileEvent('ADD', filePath);
+      })
+      .on('change', async (filePath: string) => {
+        await handleFileEvent('MODIFY', filePath);
+      })
+      .on('unlink', async (filePath: string) => {
+        await handleFileEvent('DELETE', filePath);
+      })
+      .on('error', (err) => {
+        console.warn('[VoxSync Watcher] Chokidar watcher reported a runtime warning:', err.message || err);
+      });
+  } catch (err: any) {
+    console.warn(`[VoxSync Watcher] Local filesystem active watching is disabled/unsupported on this environment (e.g. Vercel Serverless): ${err.message || err}`);
+    watcher = null;
+  }
 }
 
 // Function to process and convert file triggers into DB records & alerts
