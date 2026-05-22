@@ -1,4 +1,4 @@
-import chokidar from 'chokidar';
+import { watch, FSWatcher } from 'chokidar';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -12,7 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const syncDir = path.resolve(process.cwd(), 'sync_dir');
 
 // Maintain instance reference
-let watcher: chokidar.FSWatcher | null = null;
+let watcher: FSWatcher | null = null;
 let onFsChangeCallback: ((event: string, filePath: string, stats?: fs.Stats) => void) | null = null;
 
 // Rename correlation cache
@@ -61,7 +61,7 @@ export function initFilesystemWatcher(callback: (event: string, filePath: string
 
   console.log(`[VoxSync Watcher] Engaging Chokidar active watcher pipeline on directory: ${syncDir}`);
 
-  watcher = chokidar.watch(syncDir, {
+  watcher = watch(syncDir, {
     ignored: /(^|[\/\\])\../, // ignore dotfiles
     persistent: true,
     ignoreInitial: true, // skip existing files on boot to prevent spam
@@ -72,13 +72,13 @@ export function initFilesystemWatcher(callback: (event: string, filePath: string
   });
 
   watcher
-    .on('add', async (filePath) => {
+    .on('add', async (filePath: string) => {
       await handleFileEvent('ADD', filePath);
     })
-    .on('change', async (filePath) => {
+    .on('change', async (filePath: string) => {
       await handleFileEvent('MODIFY', filePath);
     })
-    .on('unlink', async (filePath) => {
+    .on('unlink', async (filePath: string) => {
       await handleFileEvent('DELETE', filePath);
     });
 }
