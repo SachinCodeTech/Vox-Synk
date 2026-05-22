@@ -1,0 +1,6 @@
+{
+  "name": "VoxSync",
+  "description": "Enterprise-grade real-time synchronization simulation dashboard for architectural firms.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
