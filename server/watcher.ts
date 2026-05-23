@@ -53,7 +53,7 @@ export function initFilesystemWatcher(callback: (event: string, filePath: string
     }
   }
 
-  onFsChangeCallback = (event, file) => {
+  onFsChangeCallback = (event: string, file: string) => {
     const filename = path.basename(file);
     const relativePart = path.relative(syncDir, file);
     callback(event, relativePart);
@@ -82,11 +82,12 @@ export function initFilesystemWatcher(callback: (event: string, filePath: string
       .on('unlink', async (filePath: string) => {
         await handleFileEvent('DELETE', filePath);
       })
-      .on('error', (err) => {
-        console.warn('[VoxSync Watcher] Chokidar watcher reported a runtime warning:', err.message || err);
+      .on('error', (err: any) => {
+        console.warn('[VoxSync Watcher] Chokidar watcher reported a runtime warning:', err?.message || err);
       });
-  } catch (err: any) {
-    console.warn(`[VoxSync Watcher] Local filesystem active watching is disabled/unsupported on this environment (e.g. Vercel Serverless): ${err.message || err}`);
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.warn(`[VoxSync Watcher] Local filesystem active watching is disabled/unsupported on this environment (e.g. Vercel Serverless): ${errorMessage}`);
     watcher = null;
   }
 }
