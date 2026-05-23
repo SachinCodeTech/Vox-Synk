@@ -425,78 +425,138 @@ export default function App() {
   // ==========================================
 
   // Devices Seed State
-  const [devices, setDevices] = useState<Device[]>([
-    { id: 'dev-1', hostname: 'NYC-ARCH-DESK-01', ip: '10.240.10.31', location: 'New York (LAN)', role: 'Lead Architect Workstation', status: 'SYNCING', storageUsed: 384, storageTotal: 1000, latency: 4, lastSeen: 'Just now', activeTransfers: 1, lastHeartbeat: Date.now(), healthScore: 98, uptimeSeconds: 32050 },
-    { id: 'dev-2', hostname: 'LDN-MEPF-SRV-02', ip: '10.240.20.12', location: 'London WAN', role: 'Central MEP Engineering Vault', status: 'SYNCING', storageUsed: 2240, storageTotal: 8000, latency: 14, lastSeen: 'Just now', activeTransfers: 2, lastHeartbeat: Date.now(), healthScore: 95, uptimeSeconds: 154200 },
-    { id: 'dev-3', hostname: 'SGP-BOQ-STUDIO-05', ip: '10.245.40.8', location: 'Singapore WAN', role: 'BOQ Estimations Server', status: 'ONLINE', storageUsed: 120, storageTotal: 500, latency: 38, lastSeen: '2m ago', activeTransfers: 1, lastHeartbeat: Date.now() - 4000, healthScore: 91, uptimeSeconds: 8400 },
-    { id: 'dev-4', hostname: 'PAR-STR-DESK-11', ip: '10.240.30.45', location: 'Paris LAN', role: 'Structural Modeling Node', status: 'ONLINE', storageUsed: 412, storageTotal: 1000, latency: 8, lastSeen: '1m ago', activeTransfers: 0, lastHeartbeat: Date.now() - 2000, healthScore: 99, uptimeSeconds: 41200 },
-    { id: 'dev-5', hostname: 'TYO-VRT-RENDER-03', ip: '10.198.80.99', location: 'Tokyo WAN', role: 'GPU Render Farm Coordinator', status: 'OFFLINE', storageUsed: 6200, storageTotal: 12000, latency: 154, lastSeen: '3h ago', activeTransfers: 0, lastHeartbeat: Date.now() - 3600000, healthScore: 0, uptimeSeconds: 0 }
-  ]);
+  const [devices, setDevices] = useState<Device[]>(() => {
+    try {
+      const saved = localStorage.getItem('voxsync_devices');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      { id: 'dev-1', hostname: 'NYC-ARCH-DESK-01', ip: '10.240.10.31', location: 'New York (LAN)', role: 'Lead Architect Workstation', status: 'SYNCING', storageUsed: 384, storageTotal: 1000, latency: 4, lastSeen: 'Just now', activeTransfers: 1, lastHeartbeat: Date.now(), healthScore: 98, uptimeSeconds: 32050 },
+      { id: 'dev-2', hostname: 'LDN-MEPF-SRV-02', ip: '10.240.20.12', location: 'London WAN', role: 'Central MEP Engineering Vault', status: 'SYNCING', storageUsed: 2240, storageTotal: 8000, latency: 14, lastSeen: 'Just now', activeTransfers: 2, lastHeartbeat: Date.now(), healthScore: 95, uptimeSeconds: 154200 },
+      { id: 'dev-3', hostname: 'SGP-BOQ-STUDIO-05', ip: '10.245.40.8', location: 'Singapore WAN', role: 'BOQ Estimations Server', status: 'ONLINE', storageUsed: 120, storageTotal: 500, latency: 38, lastSeen: '2m ago', activeTransfers: 1, lastHeartbeat: Date.now() - 4000, healthScore: 91, uptimeSeconds: 8400 },
+      { id: 'dev-4', hostname: 'PAR-STR-DESK-11', ip: '10.240.30.45', location: 'Paris LAN', role: 'Structural Modeling Node', status: 'ONLINE', storageUsed: 412, storageTotal: 1000, latency: 8, lastSeen: '1m ago', activeTransfers: 0, lastHeartbeat: Date.now() - 2000, healthScore: 99, uptimeSeconds: 41200 },
+      { id: 'dev-5', hostname: 'TYO-VRT-RENDER-03', ip: '10.198.80.99', location: 'Tokyo WAN', role: 'GPU Render Farm Coordinator', status: 'OFFLINE', storageUsed: 6200, storageTotal: 12000, latency: 154, lastSeen: '3h ago', activeTransfers: 0, lastHeartbeat: Date.now() - 3600000, healthScore: 0, uptimeSeconds: 0 }
+    ];
+  });
 
   // Projects Seed State
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: 'proj-alpha',
-      name: 'Project Alpha (Waterfront Tower)',
-      code: 'PA-2026',
-      status: 'Active Synchronization',
-      departments: [
-        { name: 'Architecture (AR)', size: '242.4 GB', count: 1845, active: true },
-        { name: 'Structural (ST)', size: '98.1 GB', count: 412, active: true },
-        { name: 'MEPF Engine (MP)', size: '154.0 GB', count: 284, active: true },
-        { name: 'Renders/3D (RD)', size: '840.4 GB', count: 96, active: false }
-      ]
-    },
-    {
-      id: 'proj-beta',
-      name: 'Project Beta (Intl Transit Hub)',
-      code: 'PB-HUB',
-      status: 'Selective Replication',
-      departments: [
-        { name: 'Architecture (AR)', size: '1.2 TB', count: 4890, active: true },
-        { name: 'Structural (ST)', size: '890.3 GB', count: 1912, active: true },
-        { name: 'MEPF Engine (MP)', size: '2.1 TB', count: 3410, active: true },
-        { name: 'BOQ Estimations (BQ)', size: '15.4 GB', count: 88, active: true }
-      ]
-    },
-    {
-      id: 'proj-gamma',
-      name: 'Project Gamma (Ecological Resort)',
-      code: 'PG-ECO',
-      status: 'Optimized Sync Mode',
-      departments: [
-        { name: 'Architecture (AR)', size: '84.3 GB', count: 912, active: true },
-        { name: 'Structural (ST)', size: '12.4 GB', count: 85, active: false },
-        { name: 'Renders/3D (RD)', size: '194.2 GB', count: 54, active: true }
-      ]
-    }
-  ]);
+  const [projects, setProjects] = useState<Project[]>(() => {
+    try {
+      const saved = localStorage.getItem('voxsync_projects');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: 'proj-alpha',
+        name: 'Project Alpha (Waterfront Tower)',
+        code: 'PA-2026',
+        status: 'Active Synchronization',
+        departments: [
+          { name: 'Architecture (AR)', size: '242.4 GB', count: 1845, active: true },
+          { name: 'Structural (ST)', size: '98.1 GB', count: 412, active: true },
+          { name: 'MEPF Engine (MP)', size: '154.0 GB', count: 284, active: true },
+          { name: 'Renders/3D (RD)', size: '840.4 GB', count: 96, active: false }
+        ]
+      },
+      {
+        id: 'proj-beta',
+        name: 'Project Beta (Intl Transit Hub)',
+        code: 'PB-HUB',
+        status: 'Selective Replication',
+        departments: [
+          { name: 'Architecture (AR)', size: '1.2 TB', count: 4890, active: true },
+          { name: 'Structural (ST)', size: '890.3 GB', count: 1912, active: true },
+          { name: 'MEPF Engine (MP)', size: '2.1 TB', count: 3410, active: true },
+          { name: 'BOQ Estimations (BQ)', size: '15.4 GB', count: 88, active: true }
+        ]
+      },
+      {
+        id: 'proj-gamma',
+        name: 'Project Gamma (Ecological Resort)',
+        code: 'PG-ECO',
+        status: 'Optimized Sync Mode',
+        departments: [
+          { name: 'Architecture (AR)', size: '84.3 GB', count: 912, active: true },
+          { name: 'Structural (ST)', size: '12.4 GB', count: 85, active: false },
+          { name: 'Renders/3D (RD)', size: '194.2 GB', count: 54, active: true }
+        ]
+      }
+    ];
+  });
 
   // Active Sync Jobs
-  const [syncJobs, setSyncJobs] = useState<SyncJob[]>([
-    { id: 'job-1', fileName: 'foundation_detail_v6.rvt', size: '142.4 MB', sourceDevice: 'NYC-ARCH-DESK-01', destDevice: 'LDN-MEPF-SRV-02', progress: 54, speed: '142.5 MB/s', type: 'REPLICATION', status: 'SYNCING', department: 'Structural', eta: '12s' },
-    { id: 'job-2', fileName: 'mep_layout_basement.dwg', size: '18.9 MB', sourceDevice: 'LDN-MEPF-SRV-02', destDevice: 'NYC-ARCH-DESK-01', progress: 32, speed: '18.4 MB/s', type: 'DOWNLOAD', status: 'SYNCING', department: 'MEPF Engine', eta: '4s' },
-    { id: 'job-3', fileName: 'boq_estimate_rev2.xlsx', size: '4.2 MB', sourceDevice: 'NYC-ARCH-DESK-01', destDevice: 'SGP-BOQ-STUDIO-05', progress: 85, speed: '2.8 MB/s', type: 'UPLOAD', status: 'SYNCING', department: 'BOQ Estimations', eta: '1s' },
-    { id: 'job-4', fileName: 'lobby_atrium_cycles.max', size: '1.4 GB', sourceDevice: 'NYC-ARCH-DESK-01', destDevice: 'PAR-STR-DESK-11', progress: 0, speed: '0.0 MB/s', type: 'REPLICATION', status: 'QUEUED', department: 'Renders/3D', eta: 'Waiting' },
-    { id: 'job-5', fileName: 'structural_girder_loads.pdf', size: '8.4 MB', sourceDevice: 'PAR-STR-DESK-11', destDevice: 'LDN-MEPF-SRV-02', progress: 100, speed: '48.9 MB/s', type: 'UPLOAD', status: 'COMPLETED', department: 'Structural', eta: 'Finished' },
-  ]);
+  const [syncJobs, setSyncJobs] = useState<SyncJob[]>(() => {
+    try {
+      const saved = localStorage.getItem('voxsync_syncJobs');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      { id: 'job-1', fileName: 'foundation_detail_v6.rvt', size: '142.4 MB', sourceDevice: 'NYC-ARCH-DESK-01', destDevice: 'LDN-MEPF-SRV-02', progress: 54, speed: '142.5 MB/s', type: 'REPLICATION', status: 'SYNCING', department: 'Structural', eta: '12s' },
+      { id: 'job-2', fileName: 'mep_layout_basement.dwg', size: '18.9 MB', sourceDevice: 'LDN-MEPF-SRV-02', destDevice: 'NYC-ARCH-DESK-01', progress: 32, speed: '18.4 MB/s', type: 'DOWNLOAD', status: 'SYNCING', department: 'MEPF Engine', eta: '4s' },
+      { id: 'job-3', fileName: 'boq_estimate_rev2.xlsx', size: '4.2 MB', sourceDevice: 'NYC-ARCH-DESK-01', destDevice: 'SGP-BOQ-STUDIO-05', progress: 85, speed: '2.8 MB/s', type: 'UPLOAD', status: 'SYNCING', department: 'BOQ Estimations', eta: '1s' },
+      { id: 'job-4', fileName: 'lobby_atrium_cycles.max', size: '1.4 GB', sourceDevice: 'NYC-ARCH-DESK-01', destDevice: 'PAR-STR-DESK-11', progress: 0, speed: '0.0 MB/s', type: 'REPLICATION', status: 'QUEUED', department: 'Renders/3D', eta: 'Waiting' },
+      { id: 'job-5', fileName: 'structural_girder_loads.pdf', size: '8.4 MB', sourceDevice: 'PAR-STR-DESK-11', destDevice: 'LDN-MEPF-SRV-02', progress: 100, speed: '48.9 MB/s', type: 'UPLOAD', status: 'COMPLETED', department: 'Structural', eta: 'Finished' },
+    ];
+  });
 
   // AI Insights Seed
-  const [aiAlerts, setAiAlerts] = useState<AIAleart[]>([
-    { id: 'al-1', title: 'Stale Folder Active Sync Mapping', type: 'STALE', severity: 'MEDIUM', file: '/ProjectAlpha/BOQ/2025_estimates_old/', details: 'This folder containing 18 XLS files hasn\'t changed for 124 days, yet it continues to execute heartbeat validation hooks every 5 minutes across WAN nodes.', recommendation: 'Move to VoxZip Archiver and map to standby cloud storage to save 4% overhead.', resolved: false },
-    { id: 'al-2', title: 'Duplicate CAD Drafting Files Found', type: 'DUPLICATE', severity: 'HIGH', file: 'mep_layout_basement(Copy).dwg', details: 'Identical SHA-256 binary hash detected in NY-Node & LDN-Server under different structural file namespaces.', recommendation: 'Execute auto-consolidate to match baseline and keep latest file references.', resolved: false },
-    { id: 'al-3', title: 'Oversized Asset WAN Delay Suggestion', type: 'OVERSIZED', severity: 'LOW', file: 'highres_atrium_panoramic_360.png', details: 'File size is 4.8 GB. Direct WAN upload mapped from New York to Singapore Office is choking workstation network pipes.', recommendation: 'Defer the synchronization of Renders background files to off-peak hours (after 19:00 local time) via Sync Scheduling Rule.', resolved: false },
-  ]);
+  const [aiAlerts, setAiAlerts] = useState<AIAleart[]>(() => {
+    try {
+      const saved = localStorage.getItem('voxsync_aiAlerts');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      { id: 'al-1', title: 'Stale Folder Active Sync Mapping', type: 'STALE', severity: 'MEDIUM', file: '/ProjectAlpha/BOQ/2025_estimates_old/', details: 'This folder containing 18 XLS files hasn\'t changed for 124 days, yet it continues to execute heartbeat validation hooks every 5 minutes across WAN nodes.', recommendation: 'Move to VoxZip Archiver and map to standby cloud storage to save 4% overhead.', resolved: false },
+      { id: 'al-2', title: 'Duplicate CAD Drafting Files Found', type: 'DUPLICATE', severity: 'HIGH', file: 'mep_layout_basement(Copy).dwg', details: 'Identical SHA-256 binary hash detected in NY-Node & LDN-Server under different structural file namespaces.', recommendation: 'Execute auto-consolidate to match baseline and keep latest file references.', resolved: false },
+      { id: 'al-3', title: 'Oversized Asset WAN Delay Suggestion', type: 'OVERSIZED', severity: 'LOW', file: 'highres_atrium_panoramic_360.png', details: 'File size is 4.8 GB. Direct WAN upload mapped from New York to Singapore Office is choking workstation network pipes.', recommendation: 'Defer the synchronization of Renders background files to off-peak hours (after 19:00 local time) via Sync Scheduling Rule.', resolved: false },
+    ];
+  });
 
   // Log History State
-  const [logs, setLogs] = useState<LogEntry[]>([
-    { id: 'log-1', timestamp: '10:39:01', level: 'INFO', deviceId: 'NYC-ARCH-DESK-01', message: 'Established TLS 1.3 socket layer with Paris workstation PAR-STR-DESK-11.' },
-    { id: 'log-2', timestamp: '10:39:03', level: 'SUCCESS', deviceId: 'LDN-MEPF-SRV-02', message: 'Verified SHA-256 block-data integrity check for model "foundation_detail_v6.rvt" chunk 14.' },
-    { id: 'log-3', timestamp: '10:39:05', level: 'INFO', deviceId: 'SGP-BOQ-STUDIO-05', message: 'Heartbeat validated. Calculated WAN optimization ratio: 4.1x compression active.' },
-    { id: 'log-4', timestamp: '10:39:06', level: 'ALERT', deviceId: 'NYC-ARCH-DESK-01', message: 'Detected active concurrency conflict on: /PB-HUB/ST/structural_layout.rvt. Machine LDN-MEPF-SRV-02 holds draft locks.' },
-    { id: 'log-5', timestamp: '10:39:08', level: 'WARNING', deviceId: 'TYO-VRT-RENDER-03', message: 'Server ping check timed out over Tokyo Node WAN pipeline. Marking local instance OFFLINE.' },
-    { id: 'log-6', timestamp: '10:39:10', level: 'SUCCESS', deviceId: 'NYC-ARCH-DESK-01', message: 'Simulated LAN Direct peer discovery matched NYC-ARCH-DESK-01 with 10.240.10.31.' }
-  ]);
+  const [logs, setLogs] = useState<LogEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('voxsync_logs');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      { id: 'log-1', timestamp: '10:39:01', level: 'INFO', deviceId: 'NYC-ARCH-DESK-01', message: 'Established TLS 1.3 socket layer with Paris workstation PAR-STR-DESK-11.' },
+      { id: 'log-2', timestamp: '10:39:03', level: 'SUCCESS', deviceId: 'LDN-MEPF-SRV-02', message: 'Verified SHA-256 block-data integrity check for model "foundation_detail_v6.rvt" chunk 14.' },
+      { id: 'log-3', timestamp: '10:39:05', level: 'INFO', deviceId: 'SGP-BOQ-STUDIO-05', message: 'Heartbeat validated. Calculated WAN optimization ratio: 4.1x compression active.' },
+      { id: 'log-4', timestamp: '10:39:06', level: 'ALERT', deviceId: 'NYC-ARCH-DESK-01', message: 'Detected active concurrency conflict on: /PB-HUB/ST/structural_layout.rvt. Machine LDN-MEPF-SRV-02 holds draft locks.' },
+      { id: 'log-5', timestamp: '10:39:08', level: 'WARNING', deviceId: 'TYO-VRT-RENDER-03', message: 'Server ping check timed out over Tokyo Node WAN pipeline. Marking local instance OFFLINE.' },
+      { id: 'log-6', timestamp: '10:39:10', level: 'SUCCESS', deviceId: 'NYC-ARCH-DESK-01', message: 'Simulated LAN Direct peer discovery matched NYC-ARCH-DESK-01 with 10.240.10.31.' }
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('voxsync_devices', JSON.stringify(devices));
+    } catch (e) {}
+  }, [devices]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('voxsync_projects', JSON.stringify(projects));
+    } catch (e) {}
+  }, [projects]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('voxsync_syncJobs', JSON.stringify(syncJobs));
+    } catch (e) {}
+  }, [syncJobs]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('voxsync_aiAlerts', JSON.stringify(aiAlerts));
+    } catch (e) {}
+  }, [aiAlerts]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('voxsync_logs', JSON.stringify(logs));
+    } catch (e) {}
+  }, [logs]);
 
   // Synchronize state values to refs so the simulation loop can access current values safely
   const syncJobsRef = useRef(syncJobs);
@@ -516,134 +576,24 @@ export default function App() {
   }, [devices]);
 
   // ==========================================
-  // FULL-STACK BACKED/API SOCKET BINDER (REALTIME EFFECT)
+  // PWA STANDALONE EMBEDDED ENGINE SYSTEM INIT
   // ==========================================
   useEffect(() => {
-    let ws: WebSocket | null = null;
-    let reconnectTimeout: any = null;
-    let reconnectAttempts = 0;
-    const maxReconnectDelay = 10000;
+    const now = new Date().toLocaleTimeString().split(' ')[0];
+    setLogs(prev => [
+      {
+        id: 'pwa-boot-success',
+        timestamp: now,
+        level: 'SUCCESS',
+        deviceId: 'LOCAL-PWA-ENGINE',
+        message: '🚀 VoxSync Standalone Progressive Web App initialized. Local database storage ready.'
+      },
+      ...prev
+    ]);
 
-    function connectWS() {
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-
-      // Clean up previous socket cleanly if exists
-      if (ws) {
-        try {
-          ws.onopen = null;
-          ws.onclose = null;
-          ws.onerror = null;
-          ws.onmessage = null;
-          ws.close();
-        } catch (e) {}
-      }
-
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws-sync`;
-      console.log(`[VoxSync Admin] Connecting Socket to host: ${wsUrl} (Attempt: ${reconnectAttempts + 1})`);
-      
-      ws = new WebSocket(wsUrl);
-
-      ws.onopen = () => {
-        console.log('[VoxSync Admin] WebSockets socket connected!');
-        setActiveBackendActive(true);
-        reconnectAttempts = 0; // reset attempts
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data);
-          
-          if (payload.type === 'INITIAL_STATE' || payload.type === 'STATE_UPDATE') {
-            const { devices: rxDevs, syncJobs: rxJobs, logs: rxLogs, alerts: rxAlerts, isSimulating: rxSim, cacheEngineUsed } = payload.data;
-            if (rxDevs) setDevices(rxDevs);
-            if (rxJobs) setSyncJobs(rxJobs);
-            if (rxLogs) setLogs(rxLogs);
-            if (rxAlerts) setAiAlerts(rxAlerts);
-            if (rxSim !== undefined) setIsSimulating(rxSim);
-            if (cacheEngineUsed) setActiveCacheEngine(cacheEngineUsed);
-          } else if (payload.type === 'CONFLICT_TRIGGERED') {
-            setShowConflictModal(true);
-          } else if (payload.type === 'FS_CHANGE') {
-            const { event: fsEvent, filename } = payload.data;
-            console.log(`[VoxSync Watcher Notification] chokidar trigger: ${fsEvent} on file: ${filename}`);
-          }
-        } catch (e) {
-          console.error('[VoxSync WS Exception]', e);
-        }
-      };
-
-      ws.onclose = () => {
-        setActiveBackendActive(false);
-        const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), maxReconnectDelay) + Math.random() * 500;
-        reconnectAttempts++;
-        console.warn(`[VoxSync Admin] Sockets disconnected. Attempting reconnect #${reconnectAttempts} in ${Math.round(delay)}ms...`);
-        reconnectTimeout = setTimeout(connectWS, delay);
-      };
-
-      ws.onerror = (err) => {
-        console.error('[VoxSync Admin] WebSocket encountered trace error. Recycled closed handles.', err);
-        try {
-          ws?.close();
-        } catch (e) {}
-      };
-    }
-
-    connectWS();
-
-    // Resilient state polling fallback to keep UI fully in sync with real server if WebSockets fail/upgrade blocked
-    let pollInterval: any = null;
-    
-    function startPollingFallback() {
-      if (pollInterval) clearInterval(pollInterval);
-      pollInterval = setInterval(() => {
-        // Query real server DB state
-        fetch('/api/state')
-          .then(res => {
-            if (!res.ok) throw new Error('API down');
-            return res.json();
-          })
-          .then(payload => {
-            // Once polling succeeds, we know the backend is active and responding
-            setActiveBackendActive(true);
-            
-            const { devices: rxDevs, syncJobs: rxJobs, logs: rxLogs, alerts: rxAlerts, isSimulating: rxSim, cacheEngineUsed } = payload;
-            if (rxDevs) setDevices(rxDevs);
-            if (rxJobs) setSyncJobs(rxJobs);
-            if (rxLogs) setLogs(rxLogs);
-            if (rxAlerts) setAiAlerts(rxAlerts);
-            if (rxSim !== undefined) setIsSimulating(rxSim);
-            if (cacheEngineUsed) setActiveCacheEngine(cacheEngineUsed);
-          })
-          .catch((e) => {
-            console.debug('[VoxSync Polling] API unreachable, relying on local simulations', e);
-          });
-      }, 3000);
-    }
-    
-    startPollingFallback();
-
-    // Query server configuration for caching parameters
-    fetch('/api/health')
-      .then(res => res.json())
-      .then(d => {
-        setActiveBackendActive(true);
-        if (d.services?.cache) {
-          const cacheVal = d.services.cache;
-          setActiveCacheEngine(typeof cacheVal === 'object' ? cacheVal.type : cacheVal);
-        }
-      })
-      .catch(() => {
-        console.log('[VoxSync Admin] Control Node is not listening. Engaging isolated local state UI dashboard.');
-      });
-
-    return () => {
-      if (ws) ws.close();
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      if (pollInterval) clearInterval(pollInterval);
-    };
+    // Set engine state parameter values statically for offline usage
+    setActiveCacheEngine('Local Indexed Storage');
+    setActiveBackendActive(false);
   }, []);
 
   // ==========================================
@@ -1224,7 +1174,7 @@ export default function App() {
           </div>
           <div className="flex justify-between text-[10px] font-mono text-slate-400">
             <span>6.4 TB Used</span>
-            <span>{activeBackendActive ? 'Postgres Active' : 'Offline Pool'}</span>
+            <span>{activeBackendActive ? 'Postgres Active' : 'PWA Local Vault'}</span>
           </div>
         </div>
       </aside>
@@ -1238,9 +1188,9 @@ export default function App() {
         <header id="voxsync-header-controls" className="h-16 border-b border-[#1f2937] px-6 bg-[#0c1017] flex items-center justify-between shrink-0 select-none">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-xs bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg">
-              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${activeBackendActive ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-              <span className={`font-mono font-semibold tracking-wider ${activeBackendActive ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {activeBackendActive ? 'SECURE CONSOLE SYSTEM LIVE' : 'STANDBY OFFLINE EMBEDDED'}
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-emerald-500"></span>
+              <span className="font-mono font-semibold tracking-wider text-emerald-400">
+                {activeBackendActive ? 'SECURE CONSOLE SYSTEM LIVE' : 'SECURE STANDALONE PWA LIVE'}
               </span>
             </div>
             <div className="hidden md:flex items-center space-x-1.5 text-xs text-slate-400 font-mono">
