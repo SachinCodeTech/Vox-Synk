@@ -39,6 +39,10 @@ function computeChecksumSync(filePath: string): string {
 }
 
 export function initFilesystemWatcher(callback: (event: string, filePath: string) => void) {
+  if (process.env.VERCEL) {
+    console.log('[VoxSync Watcher] Running in Vercel Serverless environment. Bypassing active directory Chokidar watcher creation.');
+    return;
+  }
   // Ensure watched directory physically exists so Chokidar runs successfully
   if (!fs.existsSync(syncDir)) {
     try {

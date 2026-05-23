@@ -137,6 +137,15 @@ export async function triggerFilesAndAISweeps(): Promise<void> {
 }
 
 export function startTelemetryDaemon() {
+  if (process.env.VERCEL) {
+    console.log('[VoxSync Telemetry] Running in Vercel Serverless environment. Bypassing active intervals to prevent Lambda hangs.');
+    // Trigger sweeps once asynchronously on cold start so data gets refreshed
+    triggerFilesAndAISweeps().catch(err => {
+      console.error('[VoxSync] Initial startup filesystem sweep error:', err);
+    });
+    return;
+  }
+
   if (telemetryInterval) clearInterval(telemetryInterval);
   if (heartbeatInterval) clearInterval(heartbeatInterval);
 

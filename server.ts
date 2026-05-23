@@ -39,7 +39,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Initialize Express core
-const app = express();
+export const app = express();
 app.use(express.json());
 
 // Single port unified architecture
@@ -612,10 +612,12 @@ function gracefulShutdown() {
   });
 }
 
-// Boot Express http listener
-server.listen(HTTP_PORT, '0.0.0.0', () => {
-  console.log(`\n=============================================================`);
-  console.log(`  VOXSYNC FULL-STACK SYNC CLUSTER ACTIVE!`);
-  console.log(`  Express backend & WebSockets online at port ${HTTP_PORT}`);
-  console.log(`=============================================================\n`);
-});
+// Boot Express http listener if not in Vercel serverless context
+if (!process.env.VERCEL) {
+  server.listen(HTTP_PORT, '0.0.0.0', () => {
+    console.log(`\n=============================================================`);
+    console.log(`  VOXSYNC FULL-STACK SYNC CLUSTER ACTIVE!`);
+    console.log(`  Express backend & WebSockets online at port ${HTTP_PORT}`);
+    console.log(`=============================================================\n`);
+  });
+}
