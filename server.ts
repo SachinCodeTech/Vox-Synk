@@ -581,7 +581,7 @@ if (!isProd) {
     console.error('[VoxSync Server] Failed to initialize Vite middleware in development:', err);
   }
 } else {
-  const clientDistPath = path.resolve(__dirname, 'dist');
+  const clientDistPath = path.resolve(process.cwd(), 'dist');
   if (fs.existsSync(clientDistPath)) {
     console.log(`[VoxSync Server] Directory dist/ identified. Serving React client assets statically.`);
     app.use(express.static(clientDistPath));

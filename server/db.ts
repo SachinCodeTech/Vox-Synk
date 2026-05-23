@@ -113,6 +113,11 @@ if (connectionString || (process.env.PGHOST && process.env.PGUSER && process.env
       connectionTimeoutMillis: 5000,
     });
     
+    // Bind global error listener to prevent uncaught db client exception crashes
+    pgPool.on('error', (err) => {
+      console.log(`[VoxSync DB] PostgreSQL pool background exception: ${err?.message || err}`);
+    });
+    
     // Quick probe to see if Postgres matches and handles handshake cleanly
     pgPool.query('SELECT NOW()', (err) => {
       if (err) {
